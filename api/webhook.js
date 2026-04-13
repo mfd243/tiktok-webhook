@@ -1,8 +1,3 @@
-console.log('ENV CHECK:', {
-  pixelId: process.env.TIKTOK_PIXEL_ID,
-  hasToken: !!process.env.TIKTOK_ACCESS_TOKEN,
-  hasTagada: !!process.env.TAGADA_API_KEY
-});
 const crypto = require('crypto');
 
 function hashData(value) {
@@ -14,6 +9,12 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
+
+  console.log('ENV CHECK:', {
+    pixelId: process.env.TIKTOK_PIXEL_ID,
+    hasToken: !!process.env.TIKTOK_ACCESS_TOKEN,
+    hasTagada: !!process.env.TAGADA_API_KEY
+  });
 
   const event = req.body;
   const orderId = event?.data?.orderId;
@@ -49,6 +50,12 @@ export default async function handler(req, res) {
   const pixelId = String(process.env.TIKTOK_PIXEL_ID).trim();
   const accessToken = String(process.env.TIKTOK_ACCESS_TOKEN).trim();
 
+  const url = new URL('https://business-api.tiktok.com/open_api/v1.3/event/track/');
+  url.searchParams.append('pixel_code', pixelId);
+
+  console.log('URL used:', url.toString());
+  console.log('Pixel ID used:', pixelId);
+
   const payload = {
     data: [
       {
@@ -70,21 +77,17 @@ export default async function handler(req, res) {
     ]
   };
 
-  console.log('Pixel ID used:', pixelId);
   console.log('Payload sent:', JSON.stringify(payload));
 
   try {
-    const response = await fetch(
-      `https://business-api.tiktok.com/open_api/v1.3/pixel/track/?pixel_code=${pixelId}`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Access-Token': accessToken
-        },
-        body: JSON.stringify(payload)
-      }
-    );
+    const response = await fetch(url.toString(), {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Token': accessToken
+      },
+      body: JSON.stringify(payload)
+    });
 
     const result = await response.json();
     console.log('TikTok response:', JSON.stringify(result));
