@@ -11,20 +11,36 @@ export default async function handler(req, res) {
   }
 
   const event = req.body;
-  console.log('Tagada payload received:', JSON.stringify(event));
+  const orderId = event?.data?.orderId;
 
-  const order = event?.data || event;
-  const customer = order?.customer || order?.billingAddress || {};
-  
-  const email = customer?.email || order?.email;
-  const phone = customer?.phone || customer?.phoneNumber || order?.phone;
-  const amount = order?.paidAmount || order?.totalAmount || order?.amount;
-  const orderId = order?.id || order?.orderId;
+  if (!orderId) {
+    return res.status(400).json({ error: 'No orderId found' });
+  }
 
-  const pixelId = process.env.TIKTOK_PIXEL_ID;
+  // Récupérer les détails complets de la commande via l'API Tagada
+  let email, phone, amount;
+  try {
+    const orderResponse = await fetch(
+      `https://app.tagadapay.com/api/v1/orders/${orderId}`,
+      {
+        headers: {
+          'Authorization': `Bearer ${process.env.TAGADA_API_KEY}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+    const orderData = await orderResponse.json();
+    console.log('Tagada order data:', JSON.stringify(orderData));
+
+    email = orderData?.customer?.email || orderData?.email;
+    phone = orderData?.customer?.phone || orderData?.phone;
+    amount = orderData?.paidAmount || orderData?.totalAmount || event?.data?.lineItems?.reduce((sum, item) => sum + item.unitAmount * item.quantity, 0) / 100;
+  } catch (err) {
+    console.log('Error fetching order:', err.message);
+  }
 
   const payload = {
-    pixel_code: pixelId,
+    pixel_code: process.env.TIKTOK_PIXEL_ID,
     data: [
       {
         event: 'Purchase',
@@ -45,11 +61,11 @@ export default async function handler(req, res) {
     ]
   };
 
-  console.log('Payload sent:', JSON.stringify(payload));
+  console.log('Payload sent to TikTok:', JSON.stringify(payload));
 
   try {
     const response = await fetch(
-      `https://business-api.tiktok.com/open_api/v1.3/event/track/`,
+      'https://business-api.tiktok.com/open_api/v1.3/event/track/',
       {
         method: 'POST',
         headers: {
