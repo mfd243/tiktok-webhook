@@ -11,14 +11,20 @@ export default async function handler(req, res) {
   }
 
   const event = req.body;
-  const order = event?.data?.order || event?.data;
+  console.log('Tagada payload received:', JSON.stringify(event));
 
-  const email = order?.customer?.email || order?.email;
-  const phone = order?.customer?.phone || order?.phone;
-  const amount = order?.paidAmount || order?.totalAmount;
+  const order = event?.data || event;
+  const customer = order?.customer || order?.billingAddress || {};
+  
+  const email = customer?.email || order?.email;
+  const phone = customer?.phone || customer?.phoneNumber || order?.phone;
+  const amount = order?.paidAmount || order?.totalAmount || order?.amount;
   const orderId = order?.id || order?.orderId;
 
+  const pixelId = process.env.TIKTOK_PIXEL_ID;
+
   const payload = {
+    pixel_code: pixelId,
     data: [
       {
         event: 'Purchase',
@@ -27,7 +33,7 @@ export default async function handler(req, res) {
         user: {
           email: hashData(email),
           phone_number: hashData(phone),
-          ip: req.headers['x-forwarded-for'] || req.socket.remoteAddress,
+          ip: req.headers['x-forwarded-for'] || req.socket?.remoteAddress,
           user_agent: req.headers['user-agent']
         },
         properties: {
@@ -39,9 +45,11 @@ export default async function handler(req, res) {
     ]
   };
 
+  console.log('Payload sent:', JSON.stringify(payload));
+
   try {
     const response = await fetch(
-      `https://business-api.tiktok.com/open_api/v1.3/event/track/?pixel_code=${process.env.TIKTOK_PIXEL_ID}`,
+      `https://business-api.tiktok.com/open_api/v1.3/event/track/`,
       {
         method: 'POST',
         headers: {
@@ -52,11 +60,11 @@ export default async function handler(req, res) {
       }
     );
 
-const result = await response.json();
-console.log('TikTok response:', JSON.stringify(result));
-console.log('Payload sent:', JSON.stringify(payload));
-return res.status(200).json(result);
+    const result = await response.json();
+    console.log('TikTok response:', JSON.stringify(result));
+    return res.status(200).json(result);
   } catch (error) {
+    console.log('Error:', error.message);
     return res.status(500).json({ error: error.message });
   }
 }
