@@ -70,7 +70,7 @@ export default async function handler(req, res) {
 
   try {
     const response = await fetch(
-      `https://business-api.tiktok.com/open_api/v1.3/event/track/?pixel_code=${pixelId}`,
+      `https://business-api.tiktok.com/open_api/v1.3/pixel/track/?pixel_code=${pixelId}`,
       {
         method: 'POST',
         headers: {
