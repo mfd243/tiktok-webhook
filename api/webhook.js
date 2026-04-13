@@ -10,12 +10,6 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  console.log('ENV CHECK:', {
-    pixelId: process.env.TIKTOK_PIXEL_ID,
-    hasToken: !!process.env.TIKTOK_ACCESS_TOKEN,
-    hasTagada: !!process.env.TAGADA_API_KEY
-  });
-
   const event = req.body;
   const orderId = event?.data?.orderId;
 
@@ -49,12 +43,12 @@ export default async function handler(req, res) {
 
   const pixelId = String(process.env.TIKTOK_PIXEL_ID).trim();
   const accessToken = String(process.env.TIKTOK_ACCESS_TOKEN).trim();
+  const advertiserId = '7625931608734875665';
 
   const url = new URL('https://business-api.tiktok.com/open_api/v1.3/event/track/');
   url.searchParams.append('pixel_code', pixelId);
 
   console.log('URL used:', url.toString());
-  console.log('Pixel ID used:', pixelId);
 
   const payload = {
     data: [
@@ -84,7 +78,8 @@ export default async function handler(req, res) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Access-Token': accessToken
+        'Access-Token': accessToken,
+        'Advertiser-Id': advertiserId
       },
       body: JSON.stringify(payload)
     });
