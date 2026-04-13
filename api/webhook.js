@@ -1,3 +1,8 @@
+console.log('ENV CHECK:', {
+  pixelId: process.env.TIKTOK_PIXEL_ID,
+  hasToken: !!process.env.TIKTOK_ACCESS_TOKEN,
+  hasTagada: !!process.env.TAGADA_API_KEY
+});
 const crypto = require('crypto');
 
 function hashData(value) {
