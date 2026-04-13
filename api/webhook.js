@@ -52,8 +52,10 @@ export default async function handler(req, res) {
       }
     );
 
-    const result = await response.json();
-    return res.status(200).json(result);
+const result = await response.json();
+console.log('TikTok response:', JSON.stringify(result));
+console.log('Payload sent:', JSON.stringify(payload));
+return res.status(200).json(result);
   } catch (error) {
     return res.status(500).json({ error: error.message });
   }
