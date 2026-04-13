@@ -2,7 +2,7 @@ const crypto = require('crypto');
 
 function hashData(value) {
   if (!value) return undefined;
-  return crypto.createHash('sha256').update(value.trim().toLowerCase()).digest('hex');
+  return crypto.createHash('sha256').update(String(value).trim().toLowerCase()).digest('hex');
 }
 
 export default async function handler(req, res) {
@@ -17,7 +17,6 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'No orderId found' });
   }
 
-  // Récupérer les détails complets de la commande via l'API Tagada
   let email, phone, amount;
   try {
     const orderResponse = await fetch(
@@ -30,17 +29,23 @@ export default async function handler(req, res) {
       }
     );
     const orderData = await orderResponse.json();
-    console.log('Tagada order data:', JSON.stringify(orderData));
 
-    email = orderData?.customer?.email || orderData?.email;
-    phone = orderData?.customer?.phone || orderData?.phone;
-    amount = orderData?.paidAmount || orderData?.totalAmount || event?.data?.lineItems?.reduce((sum, item) => sum + item.unitAmount * item.quantity, 0) / 100;
+    email = orderData?.order?.customer?.email || orderData?.order?.billingAddress?.email;
+    phone = orderData?.order?.billingAddress?.phone || orderData?.order?.customer?.billingAddress?.phone;
+    amount = orderData?.order?.paidAmount ? orderData.order.paidAmount / 100 : null;
+
+    console.log('Email found:', email);
+    console.log('Phone found:', phone);
+    console.log('Amount found:', amount);
   } catch (err) {
     console.log('Error fetching order:', err.message);
   }
 
+  const pixelId = String(process.env.TIKTOK_PIXEL_ID).trim();
+  const accessToken = String(process.env.TIKTOK_ACCESS_TOKEN).trim();
+
   const payload = {
-    pixel_code: process.env.TIKTOK_PIXEL_ID,
+    pixel_code: pixelId,
     data: [
       {
         event: 'Purchase',
@@ -61,7 +66,8 @@ export default async function handler(req, res) {
     ]
   };
 
-  console.log('Payload sent to TikTok:', JSON.stringify(payload));
+  console.log('Pixel ID used:', pixelId);
+  console.log('Payload sent:', JSON.stringify(payload));
 
   try {
     const response = await fetch(
@@ -70,7 +76,7 @@ export default async function handler(req, res) {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Access-Token': process.env.TIKTOK_ACCESS_TOKEN
+          'Access-Token': accessToken
         },
         body: JSON.stringify(payload)
       }
