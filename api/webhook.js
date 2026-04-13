@@ -45,7 +45,6 @@ export default async function handler(req, res) {
   const accessToken = String(process.env.TIKTOK_ACCESS_TOKEN).trim();
 
   const payload = {
-    pixel_code: pixelId,
     data: [
       {
         event: 'Purchase',
@@ -71,7 +70,7 @@ export default async function handler(req, res) {
 
   try {
     const response = await fetch(
-      'https://business-api.tiktok.com/open_api/v1.3/event/track/',
+      `https://business-api.tiktok.com/open_api/v1.3/event/track/?pixel_code=${pixelId}`,
       {
         method: 'POST',
         headers: {
